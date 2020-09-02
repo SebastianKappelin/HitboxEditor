@@ -50,10 +50,6 @@ class CropWindow:
 class CropImageFrame(ImageFrame):
     def __init__(self, mainframe):
         ImageFrame.__init__(self, mainframe)
-        # self.canvas.create_rectangle(0, 0, 50, 50, fill="green", stipple="gray75")
-        # self.canvas.create_rectangle(0, 50, 50, 100, fill="#0f0", stipple="gray50")
-        # self.canvas.create_rectangle(0, 100, 50, 150, fill="green", stipple="gray25")
-        # self.canvas.create_rectangle(0, 150, 50, 200, fill="green", stipple="gray12")
 
     def initialize(self):
         if ImageFrame.image:

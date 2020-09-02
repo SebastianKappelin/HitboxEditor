@@ -15,18 +15,8 @@ class ImageFrame(tk.Frame):
         self.x1 = 0
         self.y1 = 0
         self.crop_rectangle = None
-        # self.anchor_cross = None
         self.x_var = StringVar()
         self.y_var = StringVar()
-
-        # self.image = Image.open(path)
-
-        # if crop:
-        #     self.image = self.image.crop((crop['x0'], crop['y0'], crop['x1'], crop['y1']))
-
-        # self.width, self.height = self.image.size
-
-        # self.canvas.create_rectangle(10, 10, 50, 50)
 
         self.zoom_factor = 1
         # image_size = (width, height)
@@ -46,7 +36,7 @@ class ImageFrame(tk.Frame):
         vbar.config(command=self.canvas.yview)
         self.canvas.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
 
-        self.canvas.bind("<Configure>", self.show_image)  # canvas is resized
+        self.canvas.bind("<Configure>", self.show_image) 
         self.canvas.bind("<Motion>", self.motion)
         self.canvas.bind("<ButtonPress-1>", self.crop_from)
         self.canvas.bind("<B1-Motion>", self.crop_to)
