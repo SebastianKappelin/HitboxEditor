@@ -2,6 +2,10 @@ import tkinter as tk
 from tkinter import *
 from PIL import Image, ImageTk
 
+"""
+Superclass for EditorFrame and CropImageFrame
+"""
+
 
 class ImageFrame(tk.Frame):
     image = None
@@ -36,7 +40,7 @@ class ImageFrame(tk.Frame):
         vbar.config(command=self.canvas.yview)
         self.canvas.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
 
-        self.canvas.bind("<Configure>", self.show_image) 
+        self.canvas.bind("<Configure>", self.show_image)
         self.canvas.bind("<Motion>", self.motion)
         self.canvas.bind("<ButtonPress-1>", self.crop_from)
         self.canvas.bind("<B1-Motion>", self.crop_to)
