@@ -3,6 +3,10 @@ from tkinter import *
 from PIL import Image, ImageTk
 from imageframe import ImageFrame
 
+"""
+Tool for creating and showing boxes/position for individual animation frames
+"""
+
 
 class EditorFrame(ImageFrame):
 
@@ -11,14 +15,13 @@ class EditorFrame(ImageFrame):
 
     def __init__(self, mainframe):
         ImageFrame.__init__(self, mainframe)
-        self.canvas.bind("<ButtonRelease-1>", self.create_rectangle)
 
     def initialize(self):
         self.animation_frame = None
         self.images = []
         self.update_canvas()
 
-    def click_position(self, event):
+    def create_position(self, event):
         self.master.create_position(
             (
                 int(self.canvas.canvasx(event.x) / self.zoom_factor),
@@ -26,25 +29,26 @@ class EditorFrame(ImageFrame):
             )
         )
 
-    def create_rectangle(self, event):
+    def create_box(self, event):
         if self.crop_rectangle == None:
             return
         self.canvas.delete(self.crop_rectangle)
-        coordinates = {}
+        box = {}
         if self.x0 < self.x1:
-            coordinates["x0"] = self.x0
-            coordinates["x1"] = self.x1
+            box["x0"] = self.x0
+            box["x1"] = self.x1
         else:
-            coordinates["x0"] = self.x1
-            coordinates["x1"] = self.x0
+            box["x0"] = self.x1
+            box["x1"] = self.x0
         if self.y0 < self.y1:
-            coordinates["y0"] = self.y0
-            coordinates["y1"] = self.y1
+            box["y0"] = self.y0
+            box["y1"] = self.y1
         else:
-            coordinates["y0"] = self.y1
-            coordinates["y1"] = self.y0
-        self.master.create_rectangle(coordinates)
+            box["y0"] = self.y1
+            box["y1"] = self.y0
+        self.master.create_box(box)
 
+    # Uses animation_frame to only draw a crop of the full image
     def show_image(self, event=None):
         if self.animation_frame == None or ImageFrame.image == None:
             return
@@ -60,8 +64,8 @@ class EditorFrame(ImageFrame):
                     )
                 ).resize(
                     (
-                        self.animation_frame.get_width() * self.zoom_factor,
-                        self.animation_frame.get_height() * self.zoom_factor,
+                        self.animation_frame.get_crop_width() * self.zoom_factor,
+                        self.animation_frame.get_crop_height() * self.zoom_factor,
                     )
                 )
             )
@@ -71,11 +75,12 @@ class EditorFrame(ImageFrame):
             anchor="nw",
             image=imagetk,
         )
-        self.canvas.lower(imageid)
-        self.canvas.imagetk = imagetk
-        self._draw_shapes()
+        self.canvas.lower(imageid)  # Setting image as background
+        self.canvas.imagetk = imagetk  # Avoiding garbage collection
+        self.draw_shapes()
 
-    def _draw_shapes(self):
+    # Draws all boxes and position in animation_frame that's set to visible
+    def draw_shapes(self):
         boxes = self.animation_frame.get_boxes()
         self.images = []
         for i in range(len(boxes)):
@@ -159,9 +164,11 @@ class EditorFrame(ImageFrame):
         self.show_image()
 
     def position_mode(self):
-        self.canvas.bind("<ButtonPress-1>", self.click_position)
+        self.canvas.bind("<ButtonPress-1>", self.create_position)
         self.canvas.unbind("<B1-Motion>")
+        self.canvas.unbind("<ButtonRelease-1>")
 
     def box_mode(self):
         self.canvas.bind("<ButtonPress-1>", self.crop_from)
         self.canvas.bind("<B1-Motion>", self.crop_to)
+        self.canvas.bind("<ButtonRelease-1>", self.create_box)

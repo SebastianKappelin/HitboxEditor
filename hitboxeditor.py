@@ -9,14 +9,17 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
+"""
+Main window for the program.
+There are currently many planned features yet to be implemented here.
+"""
+
 
 class HitboxEditor(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
-        self.title('Hitbox Editor')
-
-        self.current_frame = -1
-        self.animation_frames = []
+        # Setting up all widgets
+        self.title("Hitbox Editor")
 
         self.list_frame = tk.Frame(master=self, width=200, height=50, bg="green")
         self.list_frame.pack(fill=tk.X, side=tk.BOTTOM)
@@ -54,17 +57,17 @@ class HitboxEditor(tk.Tk):
         self.add_frame_button.grid(row=4, column=0, sticky="ew")
 
         self.delete_frame_button = tk.Button(
-            self.file_frame, text="delete frame", command=self.delete_frame
+            self.file_frame, text="delete frame", command=self.delete_animation_frame
         )
         self.delete_frame_button.grid(row=5, column=0, sticky="ew")
 
         self.copy_frame_button = tk.Button(
-            self.file_frame, text="copy frame", command=self.copy_frame
+            self.file_frame, text="copy frame", command=self.copy_animation_frame
         )
         self.copy_frame_button.grid(row=6, column=0, sticky="ew")
 
         self.paste_frame_button = tk.Button(
-            self.file_frame, text="paste frame", command=self.paste_frame
+            self.file_frame, text="paste frame", command=self.paste_animation_frame
         )
         self.paste_frame_button.grid(row=7, column=0, sticky="ew")
 
@@ -156,7 +159,20 @@ class HitboxEditor(tk.Tk):
         )
         self.total_frames_label.pack(side=tk.LEFT)
 
+        # Setting up variables
+        self.unsaved_changes = False
+        self.path = None
         self.initialize()
+
+    # Used to setup the program on startup and new/open project
+    def initialize(self):
+        self.copy = None
+        self.animation_frames = []
+        self.current_frame = -1
+        self.create_animation_frame({"x0": 0, "x1": 0, "y0": 0, "y1": 0})
+        self.raise_all_mode_buttons()
+        self.update_button_states()
+        self.update_frame_counters()
 
     def new_project(self):
         question = "yes"
@@ -199,11 +215,10 @@ class HitboxEditor(tk.Tk):
         print("save project")
 
     def add_frame(self):
-        top = Toplevel()
-        crop_window = CropWindow(top, self)
-        top.mainloop()
+        CropWindow(self.create_animation_frame)
 
-    def create_frame(self, crop):
+    # New frame is inserted behind the current frame
+    def create_animation_frame(self, crop):
         animation_frame = AnimationFrame(crop=crop)
         self.animation_frames.insert(self.current_frame + 1, animation_frame)
         self.current_frame += 1
@@ -212,7 +227,7 @@ class HitboxEditor(tk.Tk):
         self.editor_frame.set_image_dimensions(self.find_largest_dimensions())
         self.update_button_states()
 
-    def delete_frame(self):
+    def delete_animation_frame(self):
         if self.current_frame == 0:
             return
         self.animation_frames.pop(self.current_frame)
@@ -222,11 +237,12 @@ class HitboxEditor(tk.Tk):
         self.update_frame_counters()
         self.update_button_states()
 
-    def copy_frame(self):
+    # Creates a copy of the current frame along with all its data
+    def copy_animation_frame(self):
         self.copy = copy.deepcopy(self.animation_frames[self.current_frame])
         self.update_button_states()
 
-    def paste_frame(self):
+    def paste_animation_frame(self):
         self.animation_frames.insert(self.current_frame + 1, self.copy)
         self.current_frame += 1
         self.update_frame_counters()
@@ -237,7 +253,7 @@ class HitboxEditor(tk.Tk):
         if self.position_mode_button["relief"] == tk.SUNKEN:
             self.animation_frames[self.current_frame].position = position
 
-    def create_rectangle(self, box):
+    def create_box(self, box):
         if self.current_frame == 0:
             return
         if self.hitbox_mode_button["relief"] == tk.SUNKEN:
@@ -276,7 +292,6 @@ class HitboxEditor(tk.Tk):
         self.editor_frame.position_mode()
 
     def previous_frame(self):
-
         if self.current_frame == 0:
             self.current_frame = len(self.animation_frames) - 1
         else:
@@ -286,7 +301,6 @@ class HitboxEditor(tk.Tk):
         self.update_button_states()
 
     def next_frame(self):
-
         if self.current_frame + 1 >= len(self.animation_frames):
             self.current_frame = 0
         else:
@@ -334,14 +348,3 @@ class HitboxEditor(tk.Tk):
             self.paste_frame_button.config(state=tk.ACTIVE)
         else:
             self.paste_frame_button.config(state=tk.DISABLED)
-
-    def initialize(self):
-        self.unsaved_changes = False
-        self.copy = None
-        self.animation_frames = []
-        self.current_frame = -1
-        self.path = None
-        self.create_frame({"x0": 0, "x1": 0, "y0": 0, "y1": 0})
-        self.raise_all_mode_buttons()
-        self.update_button_states()
-        self.update_frame_counters()

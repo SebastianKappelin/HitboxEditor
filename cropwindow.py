@@ -3,12 +3,19 @@ from tkinter import *
 from PIL import Image, ImageTk
 from imageframe import ImageFrame
 
+"""
+The CropWindow along with the CropImageFrame serves one purpose.
+To crop the image used for the project.
+"""
+
 
 class CropWindow:
-    def __init__(self, mainframe, parent):
+    def __init__(self, create_animation_frame):
 
-        crop_tool_frame = tk.Frame(master=mainframe, width=200, height=50, bg="red")
-        crop_frame = CropImageFrame(mainframe)
+        top = Toplevel()
+
+        crop_tool_frame = tk.Frame(master=top, width=200, height=50, bg="red")
+        crop_frame = CropImageFrame(top)
 
         zoom_in_button = tk.Button(
             crop_tool_frame, text="+", command=crop_frame.zoom_in
@@ -22,8 +29,10 @@ class CropWindow:
 
         save_button = tk.Button(
             crop_tool_frame,
-            text="save",
-            command=lambda: crop_frame.close_and_save_crop(parent),
+            text="crop image",
+            command=lambda: crop_frame.close_and_create_animation_frame(
+                create_animation_frame
+            ),
         )
         save_button.grid(row=0, column=2, sticky="ns")
 
@@ -45,6 +54,8 @@ class CropWindow:
 
         crop_tool_frame.pack(fill=tk.X, side=tk.TOP)
         crop_frame.pack(fill=tk.BOTH, expand=True)
+
+        top.mainloop()
 
 
 class CropImageFrame(ImageFrame):
@@ -75,7 +86,7 @@ class CropImageFrame(ImageFrame):
         self.canvas.imagetk = imagetk
         self.canvas.scale("all", 0, 0, self.zoom_factor, self.zoom_factor)
 
-    def set_rectangle_in_bounds(self):
+    def set_crop_rectangle_in_bounds(self):
         if self.x0 < 0:
             self.x0 = 0
         elif self.x0 > self.image_size[0]:
@@ -93,10 +104,10 @@ class CropImageFrame(ImageFrame):
         elif self.y1 > self.image_size[1]:
             self.y01 = self.image_size[1]
 
-    def close_and_save_crop(self, parent):
+    def close_and_create_animation_frame(self, create_frame):
         if self.crop_rectangle == None:
             return
-        self.set_rectangle_in_bounds()
+        self.set_crop_rectangle_in_bounds()
         coordinates = {}
         if self.x0 < self.x1:
             coordinates["x0"] = self.x0
@@ -110,5 +121,5 @@ class CropImageFrame(ImageFrame):
         else:
             coordinates["y0"] = self.y1
             coordinates["y1"] = self.y0
-        parent.create_frame(coordinates)
+        create_frame(coordinates)
         self.master.destroy()

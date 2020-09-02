@@ -1,5 +1,11 @@
 from imageframe import ImageFrame
 
+"""
+Represents a single frame of animation for a character
+along with data used for in-game logic.
+Currently only holds coordinates for crop, boxes and position
+"""
+
 
 class AnimationFrame:
 
@@ -17,7 +23,7 @@ class AnimationFrame:
     position_color = "#ff00ff"
 
     def __init__(self, crop=None):
-        # box-coords/crop = (left, up, right, down)
+        # box-coords/crop = {x0: left, y0: up, x1: right, y1: down}
         # position = (x, y)
         self.hitboxes = []
         self.hurtboxes = []
@@ -72,13 +78,13 @@ class AnimationFrame:
         else:
             return None
 
-    def get_width(self):
+    def get_crop_width(self):
         if self.crop:
             return self.crop["x1"] - self.crop["x0"]
         else:
             return 0
 
-    def get_height(self):
+    def get_crop_height(self):
         if self.crop:
             return self.crop["y1"] - self.crop["y0"]
         else:
