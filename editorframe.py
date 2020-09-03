@@ -55,14 +55,7 @@ class EditorFrame(ImageFrame):
         else:
             self.canvas.delete("all")
             imagetk = ImageTk.PhotoImage(
-                ImageFrame.image.crop(
-                    (
-                        self.animation_frame.crop["x0"],
-                        self.animation_frame.crop["y0"],
-                        self.animation_frame.crop["x1"],
-                        self.animation_frame.crop["y1"],
-                    )
-                ).resize(
+                ImageFrame.image.crop(self.animation_frame.get_crop_tuple()).resize(
                     (
                         self.animation_frame.get_crop_width() * self.zoom_factor,
                         self.animation_frame.get_crop_height() * self.zoom_factor,
