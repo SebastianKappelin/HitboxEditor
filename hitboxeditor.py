@@ -1,5 +1,6 @@
 import tkinter as tk
 import copy
+import json
 from imageframe import ImageFrame
 from editorframe import EditorFrame
 from cropwindow import CropWindow
@@ -20,6 +21,7 @@ class HitboxEditor(tk.Tk):
         tk.Tk.__init__(self)
         # Setting up all widgets
         self.title("Hitbox Editor")
+        self.protocol("WM_DELETE_WINDOW", self.close_window)
 
         self.list_frame = tk.Frame(master=self, width=200, height=50, bg="green")
         self.list_frame.pack(fill=tk.X, side=tk.BOTTOM)
@@ -160,9 +162,9 @@ class HitboxEditor(tk.Tk):
         self.total_frames_label.pack(side=tk.LEFT)
 
         # Setting up variables
-        self.unsaved_changes = False
-        self.path = None
+        self.image_path = None
         self.initialize()
+        self.unsaved_changes = False
 
     # Used to setup the program on startup and new/open project
     def initialize(self):
@@ -203,29 +205,64 @@ class HitboxEditor(tk.Tk):
             else:
                 if not filepath:
                     return
-                self.path = filepath
+                self.image_path = filepath
                 ImageFrame.image = image
                 self.unsaved_changes = True
-                self.update_button_states()
+                self.initialize()
 
+    # Files are in JSON format
     def open_project(self):
-        print("open project")
+        filepath = tk.filedialog.askopenfilename(
+            title="Select Project", filetypes=[("Character Project File", "*.char")]
+        )
+        if not filepath:
+            return
+        self.initialize()
+        self.create_project_from_json(filepath)
+        self.unsaved_changes = False
 
     def save_project(self):
-        print("save project")
+        filepath = asksaveasfilename(
+            defaultextension="char", filetypes=[("Project file", "*.char")]
+        )
+        if not filepath:
+            return
+        f = open("/home/chrx/Kod/Hitbox/shredder.char", "w+")
+        json.dump(self.collect_project_as_json(), f, indent=4)
+        f.close()
+        self.unsaved_changes = False
+
+    def create_project_from_json(self, filepath):
+        f = open(filepath, "r")
+        project = json.load(f)
+        self.image_path = project["image path"]
+        ImageFrame.image = Image.open(self.image_path)
+        for i in range(len(project["action"])):
+            animation_frame = AnimationFrame(
+                hitboxes=project["action"][i]["hitboxes"],
+                hurtboxes=project["action"][i]["hurtboxes"],
+                throwboxes=project["action"][i]["throwboxes"],
+                pushboxes=project["action"][i]["pushboxes"],
+                position=project["action"][i]["position"],
+                crop=project["action"][i]["crop"],
+            )
+            self.insert_animation_frame(animation_frame)
+
+    def collect_project_as_json(self):
+        project = {}
+        if self.image_path:
+            project["image path"] = self.image_path
+        project["action"] = []
+        for i in range(1, len(self.animation_frames)):
+            project["action"].append(self.animation_frames[i].to_json())
+        return project
 
     def add_frame(self):
         CropWindow(self.create_animation_frame)
 
-    # New frame is inserted behind the current frame
     def create_animation_frame(self, crop):
         animation_frame = AnimationFrame(crop=crop)
-        self.animation_frames.insert(self.current_frame + 1, animation_frame)
-        self.current_frame += 1
-        self.update_frame_counters()
-        self.editor_frame.set_animation_frame(animation_frame)
-        self.editor_frame.set_image_dimensions(self.find_largest_dimensions())
-        self.update_button_states()
+        self.insert_animation_frame(animation_frame)
 
     def delete_animation_frame(self):
         if self.current_frame == 0:
@@ -236,6 +273,7 @@ class HitboxEditor(tk.Tk):
         self.editor_frame.set_animation_frame(self.animation_frames[self.current_frame])
         self.update_frame_counters()
         self.update_button_states()
+        self.unsaved_changes = True
 
     # Creates a copy of the current frame along with all its data
     def copy_animation_frame(self):
@@ -243,15 +281,22 @@ class HitboxEditor(tk.Tk):
         self.update_button_states()
 
     def paste_animation_frame(self):
-        self.animation_frames.insert(self.current_frame + 1, self.copy)
+        self.insert_animation_frame(self.copy)
+
+    # New frame is inserted behind the current frame
+    def insert_animation_frame(self, animation_frame):
+        self.animation_frames.insert(self.current_frame + 1, animation_frame)
         self.current_frame += 1
         self.update_frame_counters()
-        self.editor_frame.set_animation_frame(self.copy)
-        self.copy = copy.deepcopy(self.copy)
+        self.editor_frame.set_animation_frame(animation_frame)
+        self.editor_frame.set_image_dimensions(self.find_largest_dimensions())
+        self.update_button_states()
+        self.unsaved_changes = True
 
     def create_position(self, position):
         if self.position_mode_button["relief"] == tk.SUNKEN:
             self.animation_frames[self.current_frame].position = position
+            self.unsaved_changes = True
 
     def create_box(self, box):
         if self.current_frame == 0:
@@ -265,6 +310,7 @@ class HitboxEditor(tk.Tk):
         elif self.pushbox_mode_button["relief"] == tk.SUNKEN:
             self.animation_frames[self.current_frame].pushboxes.append(box)
         self.editor_frame.show_image()
+        self.unsaved_changes = True
 
     def hitbox_mode(self):
         self.raise_all_mode_buttons()
@@ -340,11 +386,27 @@ class HitboxEditor(tk.Tk):
         else:
             self.delete_frame_button.config(state=tk.DISABLED)
             self.copy_frame_button.config(state=tk.DISABLED)
-        if self.path:
+        if self.image_path:
             self.add_frame_button.config(state=tk.ACTIVE)
+            self.save_metadata_button.config(state=tk.ACTIVE)
         else:
             self.add_frame_button.config(state=tk.DISABLED)
+            self.save_metadata_button.config(state=tk.DISABLED)
         if self.copy:
             self.paste_frame_button.config(state=tk.ACTIVE)
         else:
             self.paste_frame_button.config(state=tk.DISABLED)
+
+    def close_window(self):
+        if self.unsaved_changes:
+            question = tk.messagebox.askquestion(
+                "Unsaved changes",
+                "Are you sure you want to exit? Unsaved changes will be lost",
+                icon="warning",
+            )
+            if question == "yes":
+                self.destroy()
+            else:
+                return
+        else:
+            self.destroy()

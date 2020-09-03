@@ -22,15 +22,41 @@ class AnimationFrame:
     pushbox_color = "#ffff00"
     position_color = "#ff00ff"
 
-    def __init__(self, crop=None):
+    def __init__(
+        self,
+        hitboxes=None,
+        hurtboxes=None,
+        throwboxes=None,
+        pushboxes=None,
+        position=None,
+        crop=None,
+    ):
         # box-coords/crop = {x0: left, y0: up, x1: right, y1: down}
         # position = (x, y)
-        self.hitboxes = []
-        self.hurtboxes = []
-        self.throwboxes = []
-        self.pushboxes = []
-        self.position = None
-        self.crop = crop
+        if hitboxes:
+            self.hitboxes = hitboxes
+        else:
+            self.hitboxes = []
+        if hurtboxes:
+            self.hurtboxes = hurtboxes
+        else:
+            self.hurtboxes = []
+        if throwboxes:
+            self.throwboxes = throwboxes
+        else:
+            self.throwboxes = []
+        if pushboxes:
+            self.pushboxes = pushboxes
+        else:
+            self.pushboxes = []
+        if position:
+            self.position = position
+        else:
+            self.position = None
+        if crop:
+            self.crop = crop
+        else:
+            self.crop = None
 
     def get_boxes(self):
         boxes = []
@@ -78,6 +104,9 @@ class AnimationFrame:
         else:
             return None
 
+    def get_crop_tuple(self):
+        return self.crop["x0"], self.crop["y0"], self.crop["x1"], self.crop["y1"]
+
     def get_crop_width(self):
         if self.crop:
             return self.crop["x1"] - self.crop["x0"]
@@ -90,5 +119,35 @@ class AnimationFrame:
         else:
             return 0
 
-    def to_string(self):
-        pass
+    def to_json(self):
+        to_return = {}
+
+        to_return["hitboxes"] = []
+        for i in range(len(self.hitboxes)):
+            to_return["hitboxes"].append(self.hitboxes[i])
+
+        to_return["hurtboxes"] = []
+        for i in range(len(self.hurtboxes)):
+            to_return["hurtboxes"].append(self.hurtboxes[i])
+
+        to_return["throwboxes"] = []
+        for i in range(len(self.throwboxes)):
+            to_return["throwboxes"].append(self.throwboxes[i])
+
+        to_return["pushboxes"] = []
+        for i in range(len(self.pushboxes)):
+            to_return["pushboxes"].append(self.pushboxes[i])
+
+        if self.crop:
+            to_return["crop"] = self.crop
+        else:
+            to_return["crop"] = None
+
+        if self.position:
+            to_return["position"] = {}
+            to_return["position"]["x"] = self.position[0]
+            to_return["position"]["y"] = self.position[1]
+        else:
+            to_return["position"] = None
+
+        return to_return
