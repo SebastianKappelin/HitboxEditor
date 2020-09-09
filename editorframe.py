@@ -24,15 +24,16 @@ class EditorFrame(ImageFrame):
         self.update_canvas()
 
     def create_position(self, event):
+        offset = self.position_focus_offset()
         self.master.create_position(
             (
                 int(
                     self.canvas.canvasx(event.x) / self.zoom_factor
-                    - self.settings["margin"]["x"]
+                    - self.settings["margin"]["x"] - offset[0]
                 ),
                 int(
                     self.canvas.canvasy(event.y) / self.zoom_factor
-                    - self.settings["margin"]["x"]
+                    - self.settings["margin"]["x"]  - offset[1]
                 ),
             )
         )
@@ -42,27 +43,30 @@ class EditorFrame(ImageFrame):
             return
         self.canvas.delete(self.crop_rectangle)
         box = {}
+        offset = self.position_focus_offset()
         if self.x0 < self.x1:
-            box["x0"] = self.x0 - self.settings["margin"]["x"]
-            box["x1"] = self.x1 - self.settings["margin"]["x"]
+            box["x0"] = self.x0 - self.settings["margin"]["x"] - offset[0]
+            box["x1"] = self.x1 - self.settings["margin"]["x"] - offset[0]
         else:
-            box["x0"] = self.x1 - self.settings["margin"]["x"]
-            box["x1"] = self.x0 - self.settings["margin"]["x"]
+            box["x0"] = self.x1 - self.settings["margin"]["x"] - offset[0]
+            box["x1"] = self.x0 - self.settings["margin"]["x"] - offset[0]
         if self.y0 < self.y1:
-            box["y0"] = self.y0 - self.settings["margin"]["y"]
-            box["y1"] = self.y1 - self.settings["margin"]["y"]
+            box["y0"] = self.y0 - self.settings["margin"]["y"] - offset[1]
+            box["y1"] = self.y1 - self.settings["margin"]["y"] - offset[1]
         else:
-            box["y0"] = self.y1 - self.settings["margin"]["y"]
-            box["y1"] = self.y0 - self.settings["margin"]["y"]
+            box["y0"] = self.y1 - self.settings["margin"]["y"] - offset[1]
+            box["y1"] = self.y0 - self.settings["margin"]["y"] - offset[1]
         self.master.create_box(box)
 
     def show_coordinates(self, event):
+        offset = self.position_focus_offset()
         if self.settings["coordinates style"] == CoordinatesStyle.Top_left:
             self.x_var.set(
                 "x: {}".format(
                     int(
                         self.canvas.canvasx(event.x) / self.zoom_factor
                         - self.settings["margin"]["x"]
+                        - offset[0]
                     )
                 )
             )
@@ -71,6 +75,7 @@ class EditorFrame(ImageFrame):
                     int(
                         self.canvas.canvasy(event.y) / self.zoom_factor
                         - self.settings["margin"]["y"]
+                        - offset[1]
                     )
                 )
             )
@@ -80,6 +85,7 @@ class EditorFrame(ImageFrame):
                     int(
                         self.canvas.canvasx(event.x) / self.zoom_factor
                         - self.settings["margin"]["x"]
+                        - offset[0]
                     )
                 )
             )
@@ -87,6 +93,7 @@ class EditorFrame(ImageFrame):
                 "y: {}".format(
                     int(
                         self.settings["margin"]["y"]
+                        + offset[1]
                         + self.animation_frame.get_crop_height()
                         - self.canvas.canvasy(event.y) / self.zoom_factor
                     )
@@ -96,7 +103,7 @@ class EditorFrame(ImageFrame):
             pos = self.animation_frame.get_position()
             if not pos:
                 self.x_var.set("no position")
-                self.y_var.set(" set")
+                self.y_var.set("set")
             else:
                 self.x_var.set(
                     "x: {}".format(
@@ -104,6 +111,7 @@ class EditorFrame(ImageFrame):
                             self.canvas.canvasx(event.x) / self.zoom_factor
                             - pos["x"]
                             - self.settings["margin"]["x"]
+                            - offset[0]
                         )
                     )
                 )
@@ -113,6 +121,7 @@ class EditorFrame(ImageFrame):
                             self.settings["margin"]["y"]
                             + pos["y"]
                             - self.canvas.canvasy(event.y) / self.zoom_factor
+                            + offset[1]
                         )
                     )
                 )
@@ -220,6 +229,15 @@ class EditorFrame(ImageFrame):
                 (self.most_extreme_positions[1] - self.animation_frame.position[1])
                 * self.zoom_factor,
             )
+
+    def position_focus_offset(self):
+        if self.settings["position focus"] and self.animation_frame.position:
+            return (
+                self.most_extreme_positions[0] - self.animation_frame.position[0],
+                self.most_extreme_positions[1] - self.animation_frame.position[1],
+            )
+        else:
+            return (0, 0)
 
     # Not implemented yet
     def create_corner_markers(self):
