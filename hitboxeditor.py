@@ -5,6 +5,7 @@ from imageframe import ImageFrame
 from editorframe import EditorFrame
 from cropwindow import CropWindow
 from animationframe import AnimationFrame
+from framesettingswindow import FrameSettingsWindow
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox
@@ -38,20 +39,20 @@ class HitboxEditor(tk.Tk):
         self.editor_frame = EditorFrame(self)
         self.editor_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.open_image_button = tk.Button(
-            self.file_frame, text="new project", command=self.new_project
+        self.new_character_button = tk.Button(
+            self.file_frame, text="new character", command=self.new_character
         )
-        self.open_image_button.grid(row=1, column=0, sticky="ew")
+        self.new_character_button.grid(row=1, column=0, sticky="ew")
 
-        self.open_metadata_button = tk.Button(
-            self.file_frame, text="open project", command=self.open_project
+        self.open_chraracter_button = tk.Button(
+            self.file_frame, text="open character", command=self.open_character
         )
-        self.open_metadata_button.grid(row=2, column=0, sticky="ew")
+        self.open_chraracter_button.grid(row=2, column=0, sticky="ew")
 
-        self.save_metadata_button = tk.Button(
-            self.file_frame, text="save project", command=self.save_project
+        self.save_character_button = tk.Button(
+            self.file_frame, text="save character", command=self.save_character
         )
-        self.save_metadata_button.grid(row=3, column=0, sticky="ew")
+        self.save_character_button.grid(row=3, column=0, sticky="ew")
 
         self.add_frame_button = tk.Button(
             self.file_frame, text="new frame", command=self.add_frame
@@ -73,10 +74,23 @@ class HitboxEditor(tk.Tk):
         )
         self.paste_frame_button.grid(row=7, column=0, sticky="ew")
 
+        self.frame_settings_button = tk.Button(
+            self.file_frame, text="frame settings", command=self.frame_settings
+        )
+        self.frame_settings_button.grid(row=8, column=0, sticky="ew")
+
         self.hitbox_mode_button = tk.Button(
             self.tool_frame, text="hitbox", command=self.hitbox_mode
         )
         self.hitbox_mode_button.grid(row=0, column=0, sticky="ns")
+
+        # listbox = Listbox(self.tool_frame)
+        # listbox.insert(END, "a list entry")
+
+        # for item in ["one", "two", "three", "four"]:
+        #     listbox.insert(END, item)
+
+        # listbox.grid(row=0, column=1)
 
         self.hurtbox_mode_button = tk.Button(
             self.tool_frame, text="hurtbox", command=self.hurtbox_mode
@@ -176,7 +190,7 @@ class HitboxEditor(tk.Tk):
         self.update_button_states()
         self.update_frame_counters()
 
-    def new_project(self):
+    def new_character(self):
         question = "yes"
         if self.unsaved_changes:
             question = tk.messagebox.askquestion(
@@ -211,7 +225,7 @@ class HitboxEditor(tk.Tk):
                 self.initialize()
 
     # Files are in JSON format
-    def open_project(self):
+    def open_character(self):
         filepath = tk.filedialog.askopenfilename(
             title="Select Project", filetypes=[("Character Project File", "*.char")]
         )
@@ -221,7 +235,7 @@ class HitboxEditor(tk.Tk):
         self.create_project_from_json(filepath)
         self.unsaved_changes = False
 
-    def save_project(self):
+    def save_character(self):
         filepath = asksaveasfilename(
             defaultextension="char", filetypes=[("Project file", "*.char")]
         )
@@ -243,10 +257,14 @@ class HitboxEditor(tk.Tk):
                 hurtboxes=project["action"][i]["hurtboxes"],
                 throwboxes=project["action"][i]["throwboxes"],
                 pushboxes=project["action"][i]["pushboxes"],
-                position=project["action"][i]["position"],
+                position=(
+                    project["action"][i]["position"]["x"],
+                    project["action"][i]["position"]["y"],
+                ),
                 crop=project["action"][i]["crop"],
             )
             self.insert_animation_frame(animation_frame)
+        self.editor_frame.most_extreme_positions = self.find_most_extreme_positions()
 
     def collect_project_as_json(self):
         project = {}
@@ -283,6 +301,9 @@ class HitboxEditor(tk.Tk):
     def paste_animation_frame(self):
         self.insert_animation_frame(self.copy)
 
+    def frame_settings(self):
+        FrameSettingsWindow(self.editor_frame.settings, self.editor_frame.show_image)
+
     # New frame is inserted behind the current frame
     def insert_animation_frame(self, animation_frame):
         self.animation_frames.insert(self.current_frame + 1, animation_frame)
@@ -296,6 +317,10 @@ class HitboxEditor(tk.Tk):
     def create_position(self, position):
         if self.position_mode_button["relief"] == tk.SUNKEN:
             self.animation_frames[self.current_frame].position = position
+            self.editor_frame.most_extreme_positions = (
+                self.find_most_extreme_positions()
+            )
+            self.editor_frame.show_image()
             self.unsaved_changes = True
 
     def create_box(self, box):
@@ -373,6 +398,18 @@ class HitboxEditor(tk.Tk):
                 largest_height = current.crop["y1"] - current.crop["y0"]
         return (largest_width, largest_height)
 
+    def find_most_extreme_positions(self):
+        largest_width = int(0)
+        largest_height = int(0)
+        for i in range(len(self.animation_frames)):
+            current = self.animation_frames[i]
+            if current.position:
+                if current.position[0] > largest_width:
+                    largest_width = current.position[0]
+                if current.position[1] > largest_height:
+                    largest_height = current.position[1]
+        return (largest_width, largest_height)
+
     def update_frame_counters(self):
         self.current_frame_var.set("current frame: {}".format(self.current_frame))
         self.total_frames_var.set(
@@ -388,10 +425,10 @@ class HitboxEditor(tk.Tk):
             self.copy_frame_button.config(state=tk.DISABLED)
         if self.image_path:
             self.add_frame_button.config(state=tk.ACTIVE)
-            self.save_metadata_button.config(state=tk.ACTIVE)
+            self.save_character_button.config(state=tk.ACTIVE)
         else:
             self.add_frame_button.config(state=tk.DISABLED)
-            self.save_metadata_button.config(state=tk.DISABLED)
+            self.save_character_button.config(state=tk.DISABLED)
         if self.copy:
             self.paste_frame_button.config(state=tk.ACTIVE)
         else:

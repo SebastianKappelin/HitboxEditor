@@ -122,26 +122,28 @@ class AnimationFrame:
     def to_json(self):
         to_return = {}
 
-        to_return["hitboxes"] = []
-        for i in range(len(self.hitboxes)):
-            to_return["hitboxes"].append(self.hitboxes[i])
+        to_return["hitboxes"] = self.hitboxes
+        # for i in range(len(self.hitboxes)):
+        #     to_return["hitboxes"].append(self.hitboxes[i])
 
-        to_return["hurtboxes"] = []
-        for i in range(len(self.hurtboxes)):
-            to_return["hurtboxes"].append(self.hurtboxes[i])
+        to_return["hurtboxes"] = self.hurtboxes
+        # for i in range(len(self.hurtboxes)):
+        #     to_return["hurtboxes"].append(self.hurtboxes[i])
 
-        to_return["throwboxes"] = []
-        for i in range(len(self.throwboxes)):
-            to_return["throwboxes"].append(self.throwboxes[i])
+        to_return["throwboxes"] = self.throwboxes
+        # for i in range(len(self.throwboxes)):
+        #     to_return["throwboxes"].append(self.throwboxes[i])
 
-        to_return["pushboxes"] = []
-        for i in range(len(self.pushboxes)):
-            to_return["pushboxes"].append(self.pushboxes[i])
+        to_return["pushboxes"] = self.pushboxes
+        # for i in range(len(self.pushboxes)):
+        #     to_return["pushboxes"].append(self.pushboxes[i])
 
-        if self.crop:
-            to_return["crop"] = self.crop
-        else:
-            to_return["crop"] = None
+        to_return["crop"] = self.crop
+
+        # if self.crop:
+        #     to_return["crop"] = self.crop
+        # else:
+        #     to_return["crop"] = None
 
         if self.position:
             to_return["position"] = {}

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import *
 from PIL import Image, ImageTk
+from enum import Enum
 
 """
 Superclass for EditorFrame and CropImageFrame
@@ -12,6 +13,7 @@ class ImageFrame(tk.Frame):
 
     def __init__(self, mainframe):
         tk.Frame.__init__(self, master=mainframe)
+
         self.canvas = tk.Canvas(self)
 
         self.x0 = 0
@@ -29,8 +31,14 @@ class ImageFrame(tk.Frame):
         else:
             self.image_size = (0, 0)
 
+        self.settings = {
+            "margin": {"x": 0, "y": 0},
+            "coordinates style": CoordinatesStyle.Top_left,
+            "position focus": False,
+        }
+
         # Margin not implemented. It's purpose is to set a margin between all canvas objects and the upper left corner
-        self.margin = (0, 0)
+        # self.margin = {"x": 0, "y": 0}
 
         hbar = tk.Scrollbar(self.master, orient=tk.HORIZONTAL)
         hbar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -65,12 +73,7 @@ class ImageFrame(tk.Frame):
         self.show_image()
 
     def motion(self, event):
-        self.x_var.set(
-            "x: {}".format(int(self.canvas.canvasx(event.x) / self.zoom_factor))
-        )
-        self.y_var.set(
-            "y: {}".format(int(self.canvas.canvasy(event.y) / self.zoom_factor))
-        )
+        self.show_coordinates(event)
 
     def crop_from(self, event):
         self.x0 = int(self.canvas.canvasx(event.x) / self.zoom_factor)
@@ -87,8 +90,7 @@ class ImageFrame(tk.Frame):
             self.x1 * self.zoom_factor,
             self.y1 * self.zoom_factor,
         )
-        self.x_var.set("x: {}".format(self.x1))
-        self.y_var.set("y: {}".format(self.y1))
+        self.show_coordinates(event)
 
     def show_image(self, event=None):
         pass
@@ -98,7 +100,41 @@ class ImageFrame(tk.Frame):
             scrollregion=(
                 0,
                 0,
-                (self.image_size[0] + self.margin[0] * 2) * self.zoom_factor,
-                (self.image_size[1] + self.margin[1] * 2) * self.zoom_factor,
+                (self.image_size[0] + self.settings["margin"]["x"] * 2)
+                * self.zoom_factor,
+                (self.image_size[1] + self.settings["margin"]["y"] * 2)
+                * self.zoom_factor,
             )
         )
+
+    def get_settings(self):
+        return self.settings
+
+    # def set_margin(self, margin):
+    #     self.margin = margin
+    #     self.update_canvas()
+    #     self.show_image()
+
+    def show_coordinates(self, event):
+        self.x_var.set(
+            "x: {}".format(
+                int(
+                    self.canvas.canvasx(event.x) / self.zoom_factor
+                    - self.settings["margin"]["x"]
+                )
+            )
+        )
+        self.y_var.set(
+            "y: {}".format(
+                int(
+                    self.canvas.canvasy(event.y) / self.zoom_factor
+                    - self.settings["margin"]["y"]
+                )
+            )
+        )
+
+
+class CoordinatesStyle(Enum):
+    Top_left = 1
+    Bottom_left = 2
+    Position = 3
