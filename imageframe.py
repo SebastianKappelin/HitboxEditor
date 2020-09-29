@@ -37,9 +37,6 @@ class ImageFrame(tk.Frame):
             "position focus": False,
         }
 
-        # Margin not implemented. It's purpose is to set a margin between all canvas objects and the upper left corner
-        # self.margin = {"x": 0, "y": 0}
-
         hbar = tk.Scrollbar(self.master, orient=tk.HORIZONTAL)
         hbar.pack(side=tk.BOTTOM, fill=tk.X)
         hbar.config(command=self.canvas.xview)
@@ -55,7 +52,6 @@ class ImageFrame(tk.Frame):
 
         self.initialize()
         self.canvas.pack(expand=True, fill=tk.BOTH)
-        self.show_image()
 
     def initialize(self):
         pass

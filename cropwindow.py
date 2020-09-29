@@ -10,7 +10,7 @@ To crop the image used for the project.
 
 
 class CropWindow:
-    def __init__(self, create_animation_frame):
+    def __init__(self, create_animation_frame, update):
 
         top = Toplevel()
 
@@ -31,7 +31,7 @@ class CropWindow:
             crop_tool_frame,
             text="crop image",
             command=lambda: crop_frame.close_and_create_animation_frame(
-                create_animation_frame
+                create_animation_frame, update
             ),
         )
         save_button.grid(row=0, column=2, sticky="ns")
@@ -104,7 +104,7 @@ class CropImageFrame(ImageFrame):
         elif self.y1 > self.image_size[1]:
             self.y01 = self.image_size[1]
 
-    def close_and_create_animation_frame(self, create_frame):
+    def close_and_create_animation_frame(self, create_frame, update):
         if self.crop_rectangle == None:
             return
         self.set_crop_rectangle_in_bounds()
@@ -122,4 +122,5 @@ class CropImageFrame(ImageFrame):
             coordinates["y0"] = self.y1
             coordinates["y1"] = self.y0
         create_frame(coordinates)
+        update()
         self.master.destroy()
