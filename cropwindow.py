@@ -13,6 +13,7 @@ class CropWindow:
     def __init__(self, create_animation_frame, update):
 
         top = Toplevel()
+        top.grab_set()
 
         crop_tool_frame = tk.Frame(master=top, width=200, height=50, bg="red")
         crop_frame = CropImageFrame(top)
@@ -67,7 +68,7 @@ class CropImageFrame(ImageFrame):
             self.image_size = ImageFrame.image.size
         else:
             self.image_size = (0, 0)
-        self.update_canvas()
+        self.update_scrollregion()
 
     def show_image(self, event=None):
         if ImageFrame.image == None:

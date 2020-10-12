@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import *
 from PIL import Image, ImageTk
-from enum import Enum
+
 
 """
 Superclass for EditorFrame and CropImageFrame
@@ -31,12 +31,6 @@ class ImageFrame(tk.Frame):
         else:
             self.image_size = (0, 0)
 
-        self.settings = {
-            "margin": {"x": 0, "y": 0},
-            "coordinates style": CoordinatesStyle.Top_left,
-            "position focus": False,
-        }
-
         hbar = tk.Scrollbar(self.master, orient=tk.HORIZONTAL)
         hbar.pack(side=tk.BOTTOM, fill=tk.X)
         hbar.config(command=self.canvas.xview)
@@ -57,15 +51,17 @@ class ImageFrame(tk.Frame):
         pass
 
     def zoom_in(self):
-        self.zoom_factor = int(self.zoom_factor * 2)
-        self.update_canvas()
+        # self.zoom_factor = int(self.zoom_factor * 2)
+        self.zoom_factor += 1
+        self.update_scrollregion()
         self.show_image()
 
     def zoom_out(self):
         if self.zoom_factor == 1:
             return
-        self.zoom_factor = int(self.zoom_factor / 2)
-        self.update_canvas()
+        # self.zoom_factor = int(self.zoom_factor / 2)
+        self.zoom_factor -= 1
+        self.update_scrollregion()
         self.show_image()
 
     def motion(self, event):
@@ -91,15 +87,13 @@ class ImageFrame(tk.Frame):
     def show_image(self, event=None):
         pass
 
-    def update_canvas(self):
+    def update_scrollregion(self):
         self.canvas.config(
             scrollregion=(
                 0,
                 0,
-                (self.image_size[0] + self.settings["margin"]["x"] * 2)
-                * self.zoom_factor,
-                (self.image_size[1] + self.settings["margin"]["y"] * 2)
-                * self.zoom_factor,
+                self.image_size[0] * self.zoom_factor,
+                self.image_size[1] * self.zoom_factor,
             )
         )
 
@@ -113,24 +107,8 @@ class ImageFrame(tk.Frame):
 
     def show_coordinates(self, event):
         self.x_var.set(
-            "x: {}".format(
-                int(
-                    self.canvas.canvasx(event.x) / self.zoom_factor
-                    - self.settings["margin"]["x"]
-                )
-            )
+            "x: {}".format(int(self.canvas.canvasx(event.x) / self.zoom_factor))
         )
         self.y_var.set(
-            "y: {}".format(
-                int(
-                    self.canvas.canvasy(event.y) / self.zoom_factor
-                    - self.settings["margin"]["y"]
-                )
-            )
+            "y: {}".format(int(self.canvas.canvasy(event.y) / self.zoom_factor))
         )
-
-
-class CoordinatesStyle(Enum):
-    Top_left = 1
-    Bottom_left = 2
-    Position = 3
