@@ -1,10 +1,12 @@
 import tkinter as tk
 from tkinter import *
 from PIL import Image, ImageTk
-from imageframe import ImageFrame, CoordinatesStyle
+from imageframe import ImageFrame
+from enum import Enum
 
 """
-Tool for creating and showing boxes/position for individual animation frames
+Basically a canvas that can draw the characters current animation frame
+and create new boxes/position
 """
 
 
@@ -17,26 +19,28 @@ class EditorFrame(ImageFrame):
         ImageFrame.__init__(self, mainframe)
 
     def initialize(self):
-        self.most_extreme_positions = {"x": 0, "y": 0}
+        self.most_extreme_positions = {
+            "x": 0,
+            "y": 0,
+        }  # Represents the highest x and y position values from all frames in the current action.
+        # Used to center frames on position
         self.canvas.unbind("<B1-Motion>")
         self.canvas.unbind("<ButtonPress-1>")
         self.canvas.unbind("<ButtonRelease-1>")
-        self.update_canvas()
+        self.settings = {
+            "margin x": 0,
+            "margin y": 0,
+            "coordinates style": CoordinatesStyle.Top_left,
+            "position focus": False,
+        }
+        self.update_scrollregion()
 
     def set_position(self, event):
-        offset = self.position_focus_offset()
+        offset = self.get_offset()
         self.master.set_position(
             {
-                "x": int(
-                    self.canvas.canvasx(event.x) / self.zoom_factor
-                    - self.settings["margin"]["x"]
-                    - offset[0]
-                ),
-                "y": int(
-                    self.canvas.canvasy(event.y) / self.zoom_factor
-                    - self.settings["margin"]["x"]
-                    - offset[1]
-                ),
+                "x": int(self.canvas.canvasx(event.x) / self.zoom_factor - offset["x"]),
+                "y": int(self.canvas.canvasy(event.y) / self.zoom_factor - offset["y"]),
             }
         )
 
@@ -45,57 +49,44 @@ class EditorFrame(ImageFrame):
             return
         self.canvas.delete(self.crop_rectangle)
         box = {}
-        offset = self.position_focus_offset()
+        offset = self.get_offset()
         if self.x0 < self.x1:
-            box["x0"] = self.x0 - self.settings["margin"]["x"] - offset[0]
-            box["x1"] = self.x1 - self.settings["margin"]["x"] - offset[0]
+            box["x0"] = self.x0 - offset["x"]
+            box["x1"] = self.x1 - offset["x"]
         else:
-            box["x0"] = self.x1 - self.settings["margin"]["x"] - offset[0]
-            box["x1"] = self.x0 - self.settings["margin"]["x"] - offset[0]
+            box["x0"] = self.x1 - offset["x"]
+            box["x1"] = self.x0 - offset["x"]
         if self.y0 < self.y1:
-            box["y0"] = self.y0 - self.settings["margin"]["y"] - offset[1]
-            box["y1"] = self.y1 - self.settings["margin"]["y"] - offset[1]
+            box["y0"] = self.y0 - offset["y"]
+            box["y1"] = self.y1 - offset["y"]
         else:
-            box["y0"] = self.y1 - self.settings["margin"]["y"] - offset[1]
-            box["y1"] = self.y0 - self.settings["margin"]["y"] - offset[1]
+            box["y0"] = self.y1 - offset["y"]
+            box["y1"] = self.y0 - offset["y"]
         self.master.create_box(box)
 
     def show_coordinates(self, event):
-        offset = self.position_focus_offset()
+        offset = self.get_offset()
         if self.settings["coordinates style"] == CoordinatesStyle.Top_left:
             self.x_var.set(
                 "x: {}".format(
-                    int(
-                        self.canvas.canvasx(event.x) / self.zoom_factor
-                        - self.settings["margin"]["x"]
-                        - offset[0]
-                    )
+                    int(self.canvas.canvasx(event.x) / self.zoom_factor - offset["x"])
                 )
             )
             self.y_var.set(
                 "y: {}".format(
-                    int(
-                        self.canvas.canvasy(event.y) / self.zoom_factor
-                        - self.settings["margin"]["y"]
-                        - offset[1]
-                    )
+                    int(self.canvas.canvasy(event.y) / self.zoom_factor - offset["y"])
                 )
             )
         elif self.settings["coordinates style"] == CoordinatesStyle.Bottom_left:
             self.x_var.set(
                 "x: {}".format(
-                    int(
-                        self.canvas.canvasx(event.x) / self.zoom_factor
-                        - self.settings["margin"]["x"]
-                        - offset[0]
-                    )
+                    int(self.canvas.canvasx(event.x) / self.zoom_factor - offset["x"])
                 )
             )
             self.y_var.set(
                 "y: {}".format(
                     int(
-                        self.settings["margin"]["y"]
-                        + offset[1]
+                        offset["y"]
                         + self.character.get_crop_height()
                         - self.canvas.canvasy(event.y) / self.zoom_factor
                     )
@@ -112,23 +103,20 @@ class EditorFrame(ImageFrame):
                         int(
                             self.canvas.canvasx(event.x) / self.zoom_factor
                             - pos["x"]
-                            - self.settings["margin"]["x"]
-                            - offset[0]
+                            - offset["x"]
                         )
                     )
                 )
                 self.y_var.set(
                     "y: {}".format(
                         int(
-                            self.settings["margin"]["y"]
+                            offset["y"]
                             + pos["y"]
                             - self.canvas.canvasy(event.y) / self.zoom_factor
-                            + offset[1]
                         )
                     )
                 )
 
-    # Uses animation_frame to only draw a crop of the full image
     def show_image(self, event=None):
         if self.character == None or ImageFrame.image == None:
             return
@@ -142,8 +130,8 @@ class EditorFrame(ImageFrame):
             )
         )
         imageid = self.canvas.create_image(
-            self.settings["margin"]["x"] * self.zoom_factor,
-            self.settings["margin"]["y"] * self.zoom_factor,
+            self.settings["margin x"] * self.zoom_factor,
+            self.settings["margin y"] * self.zoom_factor,
             anchor="nw",
             image=imagetk,
         )
@@ -171,22 +159,16 @@ class EditorFrame(ImageFrame):
             )
             self.images.append(ImageTk.PhotoImage(image))
             self.canvas.create_image(
-                (boxes[i]["box"]["x0"] + self.settings["margin"]["x"])
-                * self.zoom_factor,
-                (boxes[i]["box"]["y0"] + self.settings["margin"]["y"])
-                * self.zoom_factor,
+                (boxes[i]["box"]["x0"] + self.settings["margin x"]) * self.zoom_factor,
+                (boxes[i]["box"]["y0"] + self.settings["margin y"]) * self.zoom_factor,
                 image=self.images[i],
                 anchor="nw",
             )
             self.canvas.create_rectangle(
-                (boxes[i]["box"]["x0"] + self.settings["margin"]["x"])
-                * self.zoom_factor,
-                (boxes[i]["box"]["y0"] + self.settings["margin"]["y"])
-                * self.zoom_factor,
-                (boxes[i]["box"]["x1"] + self.settings["margin"]["x"])
-                * self.zoom_factor,
-                (boxes[i]["box"]["y1"] + self.settings["margin"]["y"])
-                * self.zoom_factor,
+                (boxes[i]["box"]["x0"] + self.settings["margin x"]) * self.zoom_factor,
+                (boxes[i]["box"]["y0"] + self.settings["margin y"]) * self.zoom_factor,
+                (boxes[i]["box"]["x1"] + self.settings["margin x"]) * self.zoom_factor,
+                (boxes[i]["box"]["y1"] + self.settings["margin y"]) * self.zoom_factor,
                 outline="#{:06x}".format(
                     (
                         (boxes[i]["color"]["r"] << 16)
@@ -197,25 +179,25 @@ class EditorFrame(ImageFrame):
                 ),
             )
 
-        if self.character.frame_has_position():
-            position = self.character.get_position()
+        if self.character.frame_has_position() and self.character.is_position_visible():
+            position = self.character.get_position_and_color()
             self.canvas.create_polygon(
                 [
-                    (position["position"]["x"] + self.settings["margin"]["x"] - 5)
+                    (position["position"]["x"] + self.settings["margin x"] - 5)
                     * self.zoom_factor,
-                    (position["position"]["y"] + self.settings["margin"]["y"])
+                    (position["position"]["y"] + self.settings["margin y"])
                     * self.zoom_factor,
-                    (position["position"]["x"] + self.settings["margin"]["x"])
+                    (position["position"]["x"] + self.settings["margin x"])
                     * self.zoom_factor,
-                    (position["position"]["y"] + self.settings["margin"]["y"] - 5)
+                    (position["position"]["y"] + self.settings["margin y"] - 5)
                     * self.zoom_factor,
-                    (position["position"]["x"] + self.settings["margin"]["x"] + 5)
+                    (position["position"]["x"] + self.settings["margin x"] + 5)
                     * self.zoom_factor,
-                    (position["position"]["y"] + self.settings["margin"]["y"])
+                    (position["position"]["y"] + self.settings["margin y"])
                     * self.zoom_factor,
-                    (position["position"]["x"] + self.settings["margin"]["x"])
+                    (position["position"]["x"] + self.settings["margin x"])
                     * self.zoom_factor,
-                    (position["position"]["y"] + self.settings["margin"]["y"] + 5)
+                    (position["position"]["y"] + self.settings["margin y"] + 5)
                     * self.zoom_factor,
                 ],
                 fill="#{:06x}".format(
@@ -229,23 +211,23 @@ class EditorFrame(ImageFrame):
                 stipple=EditorFrame.stipple,
             )
             self.canvas.create_line(
-                (position["position"]["x"] - 2 + self.settings["margin"]["x"])
+                (position["position"]["x"] - 2 + self.settings["margin x"])
                 * self.zoom_factor,
-                (position["position"]["y"] + self.settings["margin"]["y"])
+                (position["position"]["y"] + self.settings["margin y"])
                 * self.zoom_factor,
-                (position["position"]["x"] + 2 + self.settings["margin"]["x"])
+                (position["position"]["x"] + 2 + self.settings["margin x"])
                 * self.zoom_factor,
-                (position["position"]["y"] + self.settings["margin"]["y"])
+                (position["position"]["y"] + self.settings["margin y"])
                 * self.zoom_factor,
             )
             self.canvas.create_line(
-                (position["position"]["x"] + self.settings["margin"]["x"])
+                (position["position"]["x"] + self.settings["margin x"])
                 * self.zoom_factor,
-                (position["position"]["y"] - 2 + self.settings["margin"]["y"])
+                (position["position"]["y"] - 2 + self.settings["margin y"])
                 * self.zoom_factor,
-                (position["position"]["x"] + self.settings["margin"]["x"])
+                (position["position"]["x"] + self.settings["margin x"])
                 * self.zoom_factor,
-                (position["position"]["y"] + 2 + self.settings["margin"]["y"])
+                (position["position"]["y"] + 2 + self.settings["margin y"])
                 * self.zoom_factor,
             )
             if self.settings["position focus"]:
@@ -257,38 +239,60 @@ class EditorFrame(ImageFrame):
                     * self.zoom_factor,
                 )
 
-    def position_focus_offset(self):
+    # Gets the distance from the drawn picture and the upper left corner.
+    def get_offset(self):
         if self.settings["position focus"] and self.character.frame_has_position():
-            return (
-                self.most_extreme_positions["x"] - self.character.frame_position_x(),
-                self.most_extreme_positions["y"] - self.character.frame_position_y(),
-            )
+            return {
+                "x": self.most_extreme_positions["x"]
+                - self.character.frame_position_x()
+                + self.settings["margin x"],
+                "y": self.most_extreme_positions["y"]
+                - self.character.frame_position_y()
+                + self.settings["margin y"],
+            }
         else:
-            return (0, 0)
+            return {
+                "x": self.settings["margin x"],
+                "y": self.settings["margin y"],
+            }
 
     def update_most_extreme_positions(self):
         self.most_extreme_positions = self.character.find_most_extreme_positions()
         self.show_image()
 
-    # Not implemented yet
+    # Not implemented yet/never
     def create_corner_markers(self):
         self.canvas.create_line(
-            self.settings["margin"]["x"] - 2,
-            self.settings["margin"]["y"] + self.height,
-            self.settings["margin"]["x"] + 2,
-            self.settings["margin"]["y"] + self.height,
+            self.settings["margin x"] - 2,
+            self.settings["margin y"] + self.height,
+            self.settings["margin x"] + 2,
+            self.settings["margin y"] + self.height,
         )
         self.canvas.create_line(
-            self.settings["margin"]["x"],
-            self.settings["margin"]["y"] + self.height - 2,
-            self.settings["margin"]["x"],
-            self.settings["margin"]["y"] + self.height + 2,
+            self.settings["margin x"],
+            self.settings["margin y"] + self.height - 2,
+            self.settings["margin x"],
+            self.settings["margin y"] + self.height + 2,
         )
 
+    # Used to get correct size on scrollbars
     def set_image_dimensions(self, dimensions):
         self.image_size = dimensions
-        self.update_canvas()
+        self.update_scrollregion()
         self.show_image()
+
+    def update_scrollregion(self):
+        self.canvas.config(
+            scrollregion=(
+                0,
+                0,
+                (self.image_size[0] + self.settings["margin x"] * 2) * self.zoom_factor,
+                (self.image_size[1] + self.settings["margin y"] * 2) * self.zoom_factor,
+            )
+        )
+
+    def get_settings(self):
+        return self.settings
 
     def set_character(self, character):
         self.character = character
@@ -303,3 +307,13 @@ class EditorFrame(ImageFrame):
         self.canvas.bind("<ButtonPress-1>", self.crop_from)
         self.canvas.bind("<B1-Motion>", self.crop_to)
         self.canvas.bind("<ButtonRelease-1>", self.create_box)
+
+
+# For showing coordinates differently.
+# Top_left x-positive = right, y-positive = down
+# Bottom_left x-positive = right, y-positive = up(same as pyglet)
+# Position x-positive = right, y-positive = up
+class CoordinatesStyle(Enum):
+    Top_left = 1
+    Bottom_left = 2
+    Position = 3

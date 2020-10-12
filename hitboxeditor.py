@@ -4,9 +4,9 @@ from imageframe import ImageFrame
 from editorframe import EditorFrame
 from cropwindow import CropWindow
 from framesettingswindow import FrameSettingsWindow
-from checkboxwindow import CheckboxWindow
+from actionswindow import ActionsWindow
 from character import Character
-from characterwindow import CharacterWindow
+from charactersettingswindow import CharacterSettingsWindow
 from tkinter import *
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox
@@ -14,7 +14,6 @@ from PIL import Image, ImageTk
 
 """
 Main window for the program.
-There are currently many planned features yet to be implemented here.
 """
 
 
@@ -59,10 +58,10 @@ class HitboxEditor(tk.Tk):
         )
         self.save_character_button.grid(row=3, column=0, sticky="ew")
 
-        self.add_frame_button = tk.Button(
-            self.file_frame, text="new frame", command=self.add_frame
+        self.add_animation_frame_button = tk.Button(
+            self.file_frame, text="new frame", command=self.add_animation_frame
         )
-        self.add_frame_button.grid(row=4, column=0, sticky="ew")
+        self.add_animation_frame_button.grid(row=4, column=0, sticky="ew")
 
         self.delete_frame_button = tk.Button(
             self.file_frame, text="delete frame", command=self.delete_animation_frame
@@ -84,17 +83,22 @@ class HitboxEditor(tk.Tk):
         )
         self.frame_settings_button.grid(row=8, column=0, sticky="ew")
 
+        self.visible_objects_button = tk.Button(
+            self.file_frame, text="visible objects", command=self.visible_objects
+        )
+        self.visible_objects_button.grid(row=9, column=0, sticky="ew")
+
         self.character_attributes_button = tk.Button(
             self.file_frame,
             text="character attributes",
             command=self.character_attributes,
         )
-        self.character_attributes_button.grid(row=9, column=0, sticky="ew")
+        self.character_attributes_button.grid(row=10, column=0, sticky="ew")
 
         self.select_action_button = tk.Button(
-            self.file_frame, text="select action", command=self.select_action
+            self.file_frame, text="select/edit action", command=self.select_action
         )
-        self.select_action_button.grid(row=10, column=0, sticky="ew")
+        self.select_action_button.grid(row=11, column=0, sticky="ew")
 
         self.box_mode_button = tk.Button(
             self.tool_frame, text="box mode", command=self.box_mode
@@ -174,6 +178,26 @@ class HitboxEditor(tk.Tk):
         )
         self.total_frames_label.pack(side=tk.LEFT)
 
+        self.current_name_var = StringVar()
+        self.current_category_var = StringVar()
+
+        self.current_name_label = tk.Label(
+            master=self.list_frame,
+            textvariable=self.current_name_var,
+            foreground="black",
+            background="white",
+        )
+
+        self.current_category_label = tk.Label(
+            master=self.list_frame,
+            textvariable=self.current_category_var,
+            foreground="black",
+            background="white",
+        )
+
+        self.current_category_label.pack(side=tk.RIGHT)
+        self.current_name_label.pack(side=tk.RIGHT)
+
         self.initialize()
 
     # Used to setup the program on startup and new/open project
@@ -194,7 +218,7 @@ class HitboxEditor(tk.Tk):
             try:
                 filepath = tk.filedialog.askopenfilename(
                     title="Select spritesheet", filetypes=[("Image File", ".*")]
-                )
+                )  # TODO Specify filetypes after knowing what pyglet can handle.
                 if not filepath:
                     return
                 image = Image.open(filepath)
@@ -245,11 +269,12 @@ class HitboxEditor(tk.Tk):
         f.close()
         self.unsaved_changes = False
 
+    # Used to set a new image file
     def update_image(self):
         ImageFrame.image = Image.open(self.character.attributes["image path"])
         self.editor_frame.show_image()
 
-    def add_frame(self):
+    def add_animation_frame(self):
         CropWindow(self.character.create_animation_frame, self.update)
 
     def delete_animation_frame(self):
@@ -269,11 +294,26 @@ class HitboxEditor(tk.Tk):
     def frame_settings(self):
         FrameSettingsWindow(self.editor_frame.settings, self.editor_frame.show_image)
 
+    def visible_objects(self):
+        CharacterSettingsWindow(
+            "Visible Objects",
+            Character.visible_objects,
+            Character.visible_objects_template,
+            self.character.apply_changes,
+            do_after=self.editor_frame.show_image,
+        )
+
     def character_attributes(self):
-        CharacterWindow(self.character, self.update_image)
+        CharacterSettingsWindow(
+            "Character Attributes",
+            self.character.get_attributes(),
+            Character.template,
+            self.character.apply_changes,
+            do_after=self.update_image,
+        )
 
     def select_action(self):
-        pass
+        ActionsWindow(self.character, self.update)
 
     def set_position(self, position):
         self.character.set_position(position)
@@ -286,12 +326,40 @@ class HitboxEditor(tk.Tk):
         self.unsaved_changes = True
 
     def box_mode(self):
-        self.raise_all_mode_buttons()
-        self.box_mode_button.config(relief=tk.SUNKEN)
-        self.editor_frame.box_mode()
+        def after_boxes():
+            if self.character.all_box_types_inactive():
+                top = tk.Toplevel()
+                message = tk.Label(
+                    master=top,
+                    text="No box types selected",
+                )
+                message.pack()
+                top.mainloop()
+            else:
+                self.raise_all_mode_buttons()
+                self.box_mode_button.config(relief=tk.SUNKEN)
+                self.editor_frame.box_mode()
+
+        if self.character.all_box_types_inactive():
+            CharacterSettingsWindow(
+                "No Box Types Selected",
+                Character.box_types,
+                Character.box_template,
+                self.character.apply_changes,
+                do_after=after_boxes,
+            )
+        else:
+            self.raise_all_mode_buttons()
+            self.box_mode_button.config(relief=tk.SUNKEN)
+            self.editor_frame.box_mode()
 
     def box_types(self):
-        CheckboxWindow(Character.box_types)
+        CharacterSettingsWindow(
+            "Box Types",
+            Character.box_types,
+            Character.box_template,
+            self.character.apply_changes,
+        )
 
     def position_mode(self):
         self.raise_all_mode_buttons()
@@ -328,18 +396,31 @@ class HitboxEditor(tk.Tk):
         self.left_button.config(state=tk.ACTIVE)
         self.right_button.config(state=tk.ACTIVE)
 
+    # Updates image, variables, buttons
     def update(self):
         self.update_button_states()
-        self.update_frame_counters()
+        self.update_labels()
         self.editor_frame.show_image()
 
-    def update_frame_counters(self):
+    def update_labels(self):
         if self.character:
             self.current_frame_var.set(
-                "current frame: {}".format(self.character.current_frame + 1)
+                "current frame: {}".format(self.character.get_current_frame())
             )
             self.total_frames_var.set(
                 "total frames: {}".format(self.character.get_total_frames())
+            )
+            self.current_name_var.set(
+                "action name: {}".format(
+                    self.character.get_action_name(self.character.get_current_action())
+                )
+            )
+            self.current_category_var.set(
+                ", category: {}".format(
+                    self.character.get_action_category(
+                        self.character.get_current_action()
+                    )
+                )
             )
 
     def update_button_states(self):
@@ -347,6 +428,7 @@ class HitboxEditor(tk.Tk):
             self.activate_all_tool_buttons()
             self.character_attributes_button.config(state=tk.ACTIVE)
             self.frame_settings_button.config(state=tk.ACTIVE)
+            self.visible_objects_button.config(state=tk.ACTIVE)
             self.select_action_button.config(state=tk.ACTIVE)
             if self.character.current_frame >= 0:
                 self.delete_frame_button.config(state=tk.ACTIVE)
@@ -355,10 +437,10 @@ class HitboxEditor(tk.Tk):
                 self.delete_frame_button.config(state=tk.DISABLED)
                 self.copy_frame_button.config(state=tk.DISABLED)
             if self.character.image_chosen():
-                self.add_frame_button.config(state=tk.ACTIVE)
+                self.add_animation_frame_button.config(state=tk.ACTIVE)
                 self.save_character_button.config(state=tk.ACTIVE)
             else:
-                self.add_frame_button.config(state=tk.DISABLED)
+                self.add_animation_frame_button.config(state=tk.DISABLED)
                 self.save_character_button.config(state=tk.DISABLED)
             if self.character.copied_frame:
                 self.paste_frame_button.config(state=tk.ACTIVE)
@@ -367,10 +449,11 @@ class HitboxEditor(tk.Tk):
         else:
             self.disable_all_tool_buttons()
             self.save_character_button.config(state=tk.DISABLED)
-            self.add_frame_button.config(state=tk.DISABLED)
+            self.add_animation_frame_button.config(state=tk.DISABLED)
             self.delete_frame_button.config(state=tk.DISABLED)
             self.copy_frame_button.config(state=tk.DISABLED)
             self.paste_frame_button.config(state=tk.DISABLED)
+            self.visible_objects_button.config(state=tk.DISABLED)
             self.character_attributes_button.config(state=tk.DISABLED)
             self.frame_settings_button.config(state=tk.DISABLED)
             self.select_action_button.config(state=tk.DISABLED)
