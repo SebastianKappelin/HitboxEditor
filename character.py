@@ -301,7 +301,7 @@ class Character:
         #     self.current_action = self.create_action(
         #         Character.default_action["name"], Character.default_action["category"]
         #     )
-        self.current_frame = -1
+        # self.current_frame = -1
         self.copied_frame = None
 
     def create_action(self, name, category, **kwargs):
@@ -347,6 +347,7 @@ class Character:
                 self.attributes["actions"][i]["name"] == name
                 and self.attributes["actions"][i]["category"] == category
             ):
+                self.current_frame = -1
                 return self.attributes["actions"][i]
         return None
 
@@ -357,6 +358,7 @@ class Character:
 
     def set_current_action(self, action):
         self.current_action = action
+        self.current_frame = -1
 
     def set_default_current_action(self):
         self.current_action = self.get_action(
@@ -366,6 +368,7 @@ class Character:
             self.current_action = self.create_action(
                 Character.default_action["name"], Character.default_action["category"]
             )
+        self.current_frame = -1
 
     def create_animation_frame(self, crop):
         if not self.current_action:
@@ -512,7 +515,7 @@ class Character:
             self.current_frame += 1
 
     # The first frame is shown as 1.
-    def get_current_frame(self):
+    def get_current_frame_number(self):
         return self.current_frame + 1
 
     def get_total_frames(self):
@@ -638,6 +641,12 @@ class Character:
 
     def get_attributes(self):
         return self.attributes
+
+    def get_current_animation_frame(self):
+        return self.current_action["frames"][self.current_frame]
+
+    def get_animation_frame_template(self):
+        return Character.template["actions"][0]["frames"][0]
 
     def apply_changes(self, to_change, changes):
         for k, v in changes.items():

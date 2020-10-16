@@ -68,6 +68,9 @@ class ImageFrame(tk.Frame):
         self.show_coordinates(event)
 
     def crop_from(self, event):
+        if self.crop_rectangle:
+            self.canvas.delete(self.crop_rectangle)
+            self.crop_rectangle = None
         self.x0 = int(self.canvas.canvasx(event.x) / self.zoom_factor)
         self.y0 = int(self.canvas.canvasy(event.y) / self.zoom_factor)
 
