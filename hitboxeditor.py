@@ -59,22 +59,30 @@ class HitboxEditor(tk.Tk):
         self.save_character_button.grid(row=3, column=0, sticky="ew")
 
         self.add_animation_frame_button = tk.Button(
-            self.file_frame, text="new frame", command=self.add_animation_frame
+            self.file_frame,
+            text="new anim. frame",
+            command=self.add_animation_frame,
         )
         self.add_animation_frame_button.grid(row=4, column=0, sticky="ew")
 
         self.delete_frame_button = tk.Button(
-            self.file_frame, text="delete frame", command=self.delete_animation_frame
+            self.file_frame,
+            text="delete anim. frame",
+            command=self.delete_animation_frame,
         )
         self.delete_frame_button.grid(row=5, column=0, sticky="ew")
 
         self.copy_frame_button = tk.Button(
-            self.file_frame, text="copy frame", command=self.copy_animation_frame
+            self.file_frame,
+            text="copy anim. frame",
+            command=self.copy_animation_frame,
         )
         self.copy_frame_button.grid(row=6, column=0, sticky="ew")
 
         self.paste_frame_button = tk.Button(
-            self.file_frame, text="paste frame", command=self.paste_animation_frame
+            self.file_frame,
+            text="paste anim. frame",
+            command=self.paste_animation_frame,
         )
         self.paste_frame_button.grid(row=7, column=0, sticky="ew")
 
@@ -134,6 +142,11 @@ class HitboxEditor(tk.Tk):
             self.tool_frame, text="->", command=self.next_frame
         )
         self.right_button.grid(row=0, column=7, sticky="ns")
+
+        self.edit_animation_frame_button = tk.Button(
+            self.tool_frame, text="edit anim. frame", command=self.edit_animation_frame
+        )
+        self.edit_animation_frame_button.grid(row=0, column=8, sticky="ns")
 
         self.x_label = tk.Label(
             self.tool_frame,
@@ -374,6 +387,15 @@ class HitboxEditor(tk.Tk):
         self.character.next_frame()
         self.update()
 
+    def edit_animation_frame(self):
+        CharacterSettingsWindow(
+            "Edit Animation Frame",
+            self.character.get_current_animation_frame(),
+            self.character.get_animation_frame_template(),
+            self.character.apply_changes,
+            do_after=self.editor_frame.show_image(),
+        )
+
     def raise_all_mode_buttons(self):
         self.box_mode_button.config(relief=tk.RAISED)
         self.position_mode_button.config(relief=tk.RAISED)
@@ -405,7 +427,7 @@ class HitboxEditor(tk.Tk):
     def update_labels(self):
         if self.character:
             self.current_frame_var.set(
-                "current frame: {}".format(self.character.get_current_frame())
+                "current frame: {}".format(self.character.get_current_frame_number())
             )
             self.total_frames_var.set(
                 "total frames: {}".format(self.character.get_total_frames())
@@ -433,6 +455,7 @@ class HitboxEditor(tk.Tk):
             if self.character.current_frame >= 0:
                 self.delete_frame_button.config(state=tk.ACTIVE)
                 self.copy_frame_button.config(state=tk.ACTIVE)
+                self.edit_animation_frame_button.config(state=tk.ACTIVE)
             else:
                 self.delete_frame_button.config(state=tk.DISABLED)
                 self.copy_frame_button.config(state=tk.DISABLED)
@@ -457,6 +480,7 @@ class HitboxEditor(tk.Tk):
             self.character_attributes_button.config(state=tk.DISABLED)
             self.frame_settings_button.config(state=tk.DISABLED)
             self.select_action_button.config(state=tk.DISABLED)
+            self.edit_animation_frame_button.config(state=tk.DISABLED)
 
     def close_window(self):
         if self.unsaved_changes:

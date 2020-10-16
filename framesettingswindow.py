@@ -12,13 +12,14 @@ class FrameSettingsWindow(tk.Toplevel):
         tk.Toplevel.__init__(self)
         self.title("Frame Settings")
 
-        def only_numbers(input):
-            for i in range(len(input)):
-                if not input.isdigit():
-                    return False
+        def only_positive_numbers(input):
+            if len(input) == 0:
+                return True
+            if not input.isdigit():
+                return False
             return True
 
-        numbers = self.register(only_numbers)
+        numbers = self.register(only_positive_numbers)
 
         x_label = tk.Label(self, text="x margin")
         x_label.grid(row=0, column=0, sticky="w")
@@ -75,8 +76,14 @@ class FrameSettingsWindow(tk.Toplevel):
         self.mainloop()
 
     def apply(self, settings, show_image):
-        settings["margin x"] = int(self.x.get())
-        settings["margin y"] = int(self.y.get())
+        if self.x.get() == "":
+            settings["margin x"] = 0
+        else:
+            settings["margin x"] = int(self.x.get())
+        if self.y.get() == "":
+            settings["margin y"] = 0
+        else:
+            settings["margin y"] = int(self.y.get())
         settings["coordinates style"] = CoordinatesStyle(self.coordinates.get())
         settings["position focus"] = self.position.get()
         show_image()
